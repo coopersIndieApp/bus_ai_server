@@ -18,6 +18,7 @@ export const query_static_route_info = (routeId) => ({
             edges {
               sid
               goBack
+              orderNo
               node {
                 id
                 lat

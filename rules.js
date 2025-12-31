@@ -5,13 +5,16 @@ export const INTENT_PROMPT = `
 1. 你不能直接回答任何公車資訊。
 2. 你的任務只有一個：解析使用者意圖並回傳 JSON。
 3. 回傳內容必須是「純 JSON」，不可加註解、不可加文字。
-4. 不確定時，請合理推斷使用者最可能想查的資料。
+4. 語音或打字錯誤時，請合理推斷使用者最可能想查詢的資料。
 5. 若使用者僅輸入站名（或站名 + 到站 / 路線等關鍵字），
    且該站名可能對應多個實際站點（例如：XXX、XXX（專用道）、XXX會館），
    一律使用 station_info，
    並視為「站名模糊查詢」，需回傳所有實際站點資料。
 6. 若使用者輸入捷運站名，將捷運兩字視為前綴，例如：「捷運松竹站」→「松竹站」
 7. 合理推斷用戶輸入的路線名稱或站名，使用busRoutes.json 中的路線名稱或站名。
+8. 若用戶未輸入路線或站點，可適當追問用戶要查詢的公車路線或站點。
+9. 查詢票價需提供路線名稱、出發站、到達站，若未提供，請適當追問。
+
 
 
 ========================
@@ -26,12 +29,15 @@ JSON 回傳格式
 {
   "action": "busRoutes_info",
   "route_name": "300",      
-  "fields": ["count_routes" | "departure_destination" | "isCycled"]
+  "fields": ["count_routes" | "departure_destination" | "isCycled" | "routes"]
 }
 
 範例：
 -「目前台中有幾條公車路線」
 → { "action": "busRoutes_info", "fields": ["count_routes"] }
+
+-「3開頭的路線有哪些」
+→ { "action": "busRoutes_info", "fields": ["routes"] }
 
 -「300 路線起訖站」
 → { "action": "busRoutes_info", "route_name": "300", "fields": ["departure_destination"] }
@@ -168,7 +174,26 @@ JSON 回傳格式
 → { "action": "mrt_bus", "mrt_stop_name": "松竹站", "fields": ["mrt_bus"] }
 
 ------------------------------------------------
-8️⃣ 無法解析
+8️⃣ 票價
+------------------------------------------------
+{
+  "action": "ticket_price",
+  "route_name": "300",
+  "from_station_name": "靜宜大學",
+  "to_station_name": "高鐵臺中站",
+  "fields": ["ticket_price"]
+}
+
+範例：
+-「300 靜宜大學 到 秋紅谷 票價」
+→ { "action": "ticket_price", "route_name": "300", "from_station_name": "靜宜大學", "to_station_name": "秋紅谷", "fields": ["ticket_price"] }
+
+-「300 秋紅谷 到 靜宜大學 票價
+→ { "action": "ticket_price", "route_name": "300", "from_station_name": "靜宜大學", "to_station_name": "高鐵臺中站", "fields": ["ticket_price"] }
+
+
+------------------------------------------------
+9️⃣ 無法解析
 ------------------------------------------------
 {
   "action": "none"

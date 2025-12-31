@@ -74,6 +74,15 @@ const extractBusRoutesData = (routeNode, fields) => {
   if (fields.includes("count_routes")) {
     result.count = busRoutes.data.routes.edges.length;
   }
+  if (fields.includes("routes")) {
+    result.routes = busRoutes.data.routes.edges.map((e) => ({
+      name: e.node.name,
+      description: e.node.description,
+      departure: e.node.departure,
+      destination: e.node.destination,
+      isCycled: e.node.isCycled,
+    }));
+  }
   if (fields.includes("departure_destination")) {
     result.departure = routeNode.departure;
     result.destination = routeNode.destination;
@@ -102,6 +111,14 @@ const extractStaticData = (routeNode, fields) => {
 
   if (fields.includes("providers")) {
     result.providers = routeNode.providers.edges.map((e) => e.node.name);
+  }
+
+  if (fields.includes("ticket_price")) {
+    // result.stations = routeNode.stations.edges;
+    result.stations = {
+      go: routeNode.stations.edges.filter((e) => e.goBack === 1),
+      back: routeNode.stations.edges.filter((e) => e.goBack === 2),
+    };
   }
 
   return result;
@@ -208,8 +225,13 @@ const generateAnswer = async (data, message) => {
 
 const actionHandlers = {
   busRoutes_info: async (intentJSON, message) => {
-    const routeNode = getRouteNodeByName(intentJSON.route_name);
-    if (!routeNode) return { content: "抱歉，查無此路線。" };
+    let routeNode;
+    if (intentJSON.route_name) {
+      routeNode = getRouteNodeByName(intentJSON.route_name);
+      if (!routeNode) return { content: "抱歉，查無此路線。" };
+    }
+    // const routeNode = getRouteNodeByName(intentJSON.route_name);
+    // if (!routeNode) return { content: "抱歉，查無此路線。" };
 
     const data = extractBusRoutesData(routeNode, intentJSON.fields);
     return generateAnswer(data, message);
@@ -324,6 +346,75 @@ const actionHandlers = {
     };
   },
 
+  ticket_price: async (intentJSON, message) => {
+    if (!intentJSON.route_name) {
+      return { content: "請問您要查詢哪條路線的票價？" };
+    }
+
+    const route_id = getRouteIdByName(intentJSON.route_name);
+    if (!route_id) return { content: "抱歉，查無此路線。" };
+
+    const apiResult = await fetch(
+      ESTOP_API,
+      query_static_route_info(route_id)
+    ).then((r) => r.json());
+
+    const routeInfo = apiResult.data.route;
+    const data = extractStaticData(apiResult.data.route, intentJSON.fields);
+
+    if (!intentJSON.from_station_name || !intentJSON.to_station_name) {
+      return { content: "請提供上車站與下車站。" };
+    }
+
+    const go_from_station = data.stations.go.find((e) =>
+      fuzzyMatch(e.node.name, intentJSON.from_station_name)
+    );
+    const go_to_station = data.stations.go.find((e) =>
+      fuzzyMatch(e.node.name, intentJSON.to_station_name)
+    );
+
+    const back_from_station = data.stations.back.find((e) =>
+      fuzzyMatch(e.node.name, intentJSON.from_station_name)
+    );
+    const back_to_station = data.stations.back.find((e) =>
+      fuzzyMatch(e.node.name, intentJSON.to_station_name)
+    );
+
+    if (
+      !go_from_station ||
+      !go_to_station ||
+      !back_from_station ||
+      !back_to_station
+    ) {
+      return { content: "抱歉，查無此站點。" };
+    }
+
+    let goBack;
+    let departure;
+    let destination;
+
+    if (go_from_station.orderNo < go_to_station.orderNo) {
+      goBack = go_from_station.goBack;
+      departure = go_from_station;
+      destination = go_to_station;
+    } else {
+      goBack = back_from_station.goBack;
+      departure = back_from_station;
+      destination = back_to_station;
+    }
+
+    if (departure?.node?.id == destination?.node?.id)
+      return { content: "抱歉，出發站與到達站相同，無法查詢票價。" };
+
+    const direction =
+      goBack == 1 ? `往${routeInfo.destination}` : `往${routeInfo.departure}`;
+
+    return {
+      content: `點擊查看「${intentJSON.route_name} - ${direction}」${departure?.node?.name} 到 ${destination?.node?.name} 票價資訊 →`,
+      navigate: `/general/fare?id=${route_id}&goBack=${goBack}&departureId=${departure?.node?.id}&destinationId=${destination?.node?.id}`,
+    };
+  },
+
   // 捷運松竹站公車路線
 
   mrt_bus: async (intentJSON, message) => {
@@ -408,6 +499,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// const PORT = 3000;
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
