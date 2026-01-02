@@ -205,6 +205,7 @@ const extractDynamicStationsData = (stationNode) => {
    AI Answer
 ======================== */
 
+// 300去程靜宜大學到回程東海大學票價
 // 舊社站路線
 
 const generateAnswer = async (data, message) => {
@@ -265,7 +266,6 @@ const actionHandlers = {
       intentJSON.station_name
     );
 
-    console.log("data", data);
     if (!data) return { content: "抱歉，查無相關資料，請確認輸入是否正確。" };
 
     return generateAnswer(
@@ -312,12 +312,12 @@ const actionHandlers = {
     const route_id = getRouteIdByName(intentJSON.route_name);
     if (!route_id) return { content: "抱歉，查無此路線。" };
 
-    const activeTabIndex = intentJSON.direction ? intentJSON.direction : 0; // 0: go, 1: back
+    const activeTabIndex = intentJSON.direction ? intentJSON.direction : 1; // 1: go, 2: back
     const direction = intentJSON.direction
-      ? intentJSON.direction === 1
+      ? intentJSON.direction === 2
         ? "回程"
         : "去程"
-      : ""; // 0: go, 1: back
+      : ""; // 1: go, 2: back
     const date = intentJSON.date ? intentJSON.date : "";
     return {
       content: `點擊查看「${intentJSON.route_name}」${
@@ -331,12 +331,12 @@ const actionHandlers = {
     const route_id = getRouteIdByName(intentJSON.route_name);
     if (!route_id) return { content: "抱歉，查無此路線。" };
 
-    const activeTabIndex = intentJSON.direction ? intentJSON.direction : 0; // 0: go, 1: back
+    const activeTabIndex = intentJSON.direction ? intentJSON.direction : 1; // 1: go, 2: back
     const direction = intentJSON.direction
-      ? intentJSON.direction === 1
+      ? intentJSON.direction === 2
         ? "回程"
         : "去程"
-      : ""; // 0: go, 1: back
+      : ""; // 1: go, 2: back
 
     return {
       content: `點擊查看「${intentJSON.route_name}」${
@@ -372,7 +372,6 @@ const actionHandlers = {
     const go_to_station = data.stations.go.find((e) =>
       fuzzyMatch(e.node.name, intentJSON.to_station_name)
     );
-
     const back_from_station = data.stations.back.find((e) =>
       fuzzyMatch(e.node.name, intentJSON.from_station_name)
     );
@@ -392,8 +391,10 @@ const actionHandlers = {
     let goBack;
     let departure;
     let destination;
-
-    if (go_from_station.orderNo < go_to_station.orderNo) {
+    let results = [];
+    //循環線
+    //如果 出發站序號 > 到達站序號，代表返程
+    if (go_from_station?.orderNo < go_to_station?.orderNo) {
       goBack = go_from_station.goBack;
       departure = go_from_station;
       destination = go_to_station;
@@ -403,15 +404,74 @@ const actionHandlers = {
       destination = back_to_station;
     }
 
-    if (departure?.node?.id == destination?.node?.id)
-      return { content: "抱歉，出發站與到達站相同，無法查詢票價。" };
+    if (departure?.node?.id == destination?.node?.id) {
+      if (!routeInfo.isCycled) {
+        return { content: "抱歉，出發站與到達站相同，無法查詢票價。" };
+      }
+    } else {
+      results.push({
+        goBack: goBack,
+        departure: departure,
+        destination: destination,
+      });
+    }
 
-    const direction =
-      goBack == 1 ? `往${routeInfo.destination}` : `往${routeInfo.departure}`;
+    if (routeInfo.isCycled) {
+      goBack = 1;
+      departure = go_from_station;
+      destination = back_to_station;
+
+      results.push({
+        goBack: goBack,
+        departure: departure,
+        destination: destination,
+        isCycled: routeInfo.isCycled,
+      });
+    }
+
+    const content = results
+      .map((e) => {
+        const direction =
+          e.goBack == 1
+            ? ` - 往${routeInfo.destination}`
+            : ` - 往${routeInfo.departure}`;
+        return `點擊查看「${intentJSON.route_name}${direction}」${
+          e.departure?.node?.name
+        } 到 ${e.isCycled ? "『返程』-" : ""} ${
+          e.destination?.node?.name
+        } 票價資訊 →`;
+      })
+      .join("\n");
+
+    const extraData = results.map((e) => {
+      const direction =
+        e.goBack == 1
+          ? ` - 往${routeInfo.destination}`
+          : ` - 往${routeInfo.departure}`;
+      return {
+        content: `點擊查看「${intentJSON.route_name}${direction}」${
+          e.departure?.node?.name
+        } 到 ${e.isCycled ? "『返程』-" : ""} ${
+          e.destination?.node?.name
+        } 票價資訊 →`,
+        navigate: `/general/fare?id=${route_id}&goBack=${e.goBack}&departureId=${e.departure?.node?.id}&destinationId=${e.destination?.node?.id}`,
+      };
+    });
+    return {
+      content: content,
+      navigate: extraData[0].navigate,
+      extraData: extraData,
+    };
+  },
+
+  travel_plan: async (intentJSON, message) => {
+    const dateTime = intentJSON.dateTime ? intentJSON.dateTime : "";
 
     return {
-      content: `點擊查看「${intentJSON.route_name} - ${direction}」${departure?.node?.name} 到 ${destination?.node?.name} 票價資訊 →`,
-      navigate: `/general/fare?id=${route_id}&goBack=${goBack}&departureId=${departure?.node?.id}&destinationId=${destination?.node?.id}`,
+      content: `點擊查看 ${dateTime ? `(${dateTime})` : ""}「${
+        intentJSON.from_place
+      } 到 ${intentJSON.to_place}」旅運規劃 →`,
+      navigate: `/general/planner?from_place=${intentJSON.from_place}&to_place=${intentJSON.to_place}&dateTime=${dateTime}`,
     };
   },
 
@@ -470,10 +530,13 @@ app.post("/chat", async (req, res) => {
   const { messages } = req.body;
   const lastMessage = messages[messages.length - 1].content;
 
+  const dateTime = new Date().toISOString().split("T")[0];
+
   try {
     const intentCompletion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4.1-mini",
       messages: [
+        { role: "system", content: `現在時間是：${dateTime}` },
         { role: "system", content: INTENT_PROMPT },
         ...messages,
         // { role: "user", content: lastMessage },
