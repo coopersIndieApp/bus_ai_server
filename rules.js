@@ -130,7 +130,7 @@ JSON 回傳格式
   "action": "route_schedule_info",
   "route_name": "300",
   "date": "YYYY-MM-DD"
-  "direction": 1 | 2 ,
+  "direction": 0 | 1 ,
   "fields": ["timetable"]
 }
 
@@ -139,7 +139,7 @@ JSON 回傳格式
 → { "action": "route_schedule_info", "route_name": "300", "date":"2025-12-30",  "fields": ["timetable"] }
 
 -「300 回程時刻表」
-→ { "action": "route_schedule_info", "route_name": "300", "date":"2025-12-30", "direction": 2, "fields": ["timetable"] }
+→ { "action": "route_schedule_info", "route_name": "300", "date":"2025-12-30", "direction": 1, "fields": ["timetable"] }
 
 -「300 昨天時刻表 」
 → { "action": "route_schedule_info", "route_name": "300", "date":"2025-12-29", "fields": ["timetable"] }
@@ -151,7 +151,7 @@ JSON 回傳格式
 {
   "action": "route_map",
   "route_name": "300",
-  "direction": 1 | 2 ,
+  "direction": 0 | 1 ,
   "fields": ["route_map"]
 }
 
@@ -160,7 +160,7 @@ JSON 回傳格式
 → { "action": "route_map", "route_name": "300", "fields": ["route_map"] }
 
 -「300 回程地圖」
-→ { "action": "route_map", "route_name": "300", "direction": 2, "fields": ["route_map"] }
+→ { "action": "route_map", "route_name": "300", "direction": 1, "fields": ["route_map"] }
 
 
 ------------------------------------------------
