@@ -465,13 +465,24 @@ const actionHandlers = {
   },
 
   travel_plan: async (intentJSON, message) => {
-    const dateTime = intentJSON.dateTime ? intentJSON.dateTime : "";
-
+    let from_place_name;
+    let to_place_name;
+    if (intentJSON.from_place === "CURRENT_LOCATION") {
+      from_place_name = "現在位置";
+    } else {
+      from_place_name = intentJSON.from_place;
+    }
+    if (intentJSON.to_place === "CURRENT_LOCATION") {
+      to_place_name = "現在位置";
+    } else {
+      to_place_name = intentJSON.to_place;
+    }
+    const dateTimeString = intentJSON.dateTime ? intentJSON.dateTime : "";
     return {
-      content: `點擊查看 ${dateTime ? `(${dateTime})` : ""}「${
-        intentJSON.from_place
-      } 到 ${intentJSON.to_place}」旅運規劃 →`,
-      navigate: `/general/planner?from_place=${intentJSON.from_place}&to_place=${intentJSON.to_place}&dateTime=${dateTime}`,
+      content: `點擊查看 ${
+        dateTimeString ? `(${dateTimeString})` : ""
+      }「${from_place_name} 到 ${to_place_name}」旅運規劃 →`,
+      navigate: `/general/planner?from_place=${intentJSON.from_place}&to_place=${intentJSON.to_place}&dateTime=${dateTimeString}`,
     };
   },
 

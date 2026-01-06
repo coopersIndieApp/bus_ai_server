@@ -784,18 +784,6 @@
         },
         {
           "node": {
-            "id": "106",
-            "name": "108區",
-            "description": "寶島時代村(中正路) - 臺中車站(臺灣大道)",
-            "opType": 0,
-            "inuse": true,
-            "isCycled": false,
-            "departure": "寶島時代村(中正路)",
-            "destination": "臺中車站(臺灣大道)"
-          }
-        },
-        {
-          "node": {
             "id": "107",
             "name": "107",
             "description": "警察電台  - 舊正(烏溪橋頭)",
