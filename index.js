@@ -14,6 +14,7 @@ import {
   handleRouteScheduleInfoTool,
   handleMrTBusTool,
   handleTicketPriceTool,
+  handleNearbyStationTool,
 } from "./handler.js";
 import cron from "node-cron";
 // 捷運松竹站公車路線
@@ -45,6 +46,8 @@ const handleToolCall = async (name, args, lastMessage) => {
       return await handleMrTBusTool(args, lastMessage);
     case "ticket_price":
       return await handleTicketPriceTool(args, lastMessage);
+    case "nearby_station":
+      return handleNearbyStationTool(args, lastMessage);
   }
 };
 
@@ -100,7 +103,7 @@ app.post("/chat", async (req, res) => {
     });
     // 東海大學到靜宜大學 怎麼搭
     const toolCall = completion.choices[0].message.tool_calls?.[0];
-
+    console.log(toolCall);
     if (!toolCall) {
       return res.json({
         reply: completion.choices[0].message,

@@ -135,13 +135,18 @@ const mrtBusTool = {
   function: {
     name: "mrt_bus",
     description:
-      "查詢捷運站公車路線。範例：捷運高鐵臺中站 公車路線？捷運松竹站 公車路線？",
+      "查詢捷運站名稱或捷運站公車路線。範例：有哪些捷運站？捷運高鐵臺中站 公車路線？捷運松竹站 公車路線？",
     parameters: {
       type: "object",
       properties: {
         mrt_stop_name: { type: "string", description: "捷運站名稱" },
+        fields: {
+          type: "array",
+          items: {
+            enum: ["mrt_names", "mrt_bus_routes"],
+          },
+        },
       },
-      required: ["mrt_stop_name"],
     },
   },
 };
@@ -204,6 +209,14 @@ const travelPlanTool = {
   },
 };
 
+const nearbyStationTool = {
+  type: "function",
+  function: {
+    name: "nearby_station",
+    description: "查詢附近站點。範例：我附近有哪些站點？",
+  },
+};
+
 export const tools = [
   busRoutesInfoTool,
   staticRouteInfoTool,
@@ -214,4 +227,5 @@ export const tools = [
   travelPlanTool,
   mrtBusTool,
   ticketPriceTool,
+  nearbyStationTool,
 ];

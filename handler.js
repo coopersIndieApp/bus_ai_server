@@ -419,6 +419,13 @@ export const handleRouteMapTool = async ({ route_name, direction }) => {
   };
 };
 
+export const handleNearbyStationTool = () => {
+  return {
+    content: `點擊查看附近站牌 →`,
+    navigate: `/general/nearbyTransportationTab?initialSheetIndex=1`,
+  };
+};
+
 export const handleTravelPlanTool = async ({
   from_place,
   to_place,
@@ -445,12 +452,18 @@ export const handleTravelPlanTool = async ({
   };
 };
 
-export const handleMrTBusTool = async ({ mrt_stop_name }) => {
+export const handleMrTBusTool = async ({ mrt_stop_name, fields }, message) => {
   const apiResult = await fetch(ESTOP_API, query_mrt_stop_routes()).then((r) =>
     r.json()
   );
 
   const mrtBusStops = apiResult.data.metros.edges.map((e) => e.node);
+
+  if (!mrt_stop_name)
+    return generateAnswer(
+      { fields, data: mrtBusStops.map((e) => e.name) },
+      message
+    );
 
   let mrtName;
 
