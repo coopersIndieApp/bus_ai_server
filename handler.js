@@ -529,7 +529,7 @@ export const handleTicketPriceTool = async ({
   let goBack;
   let departure;
   let destination;
-  let results = [];
+  let possibleResults = [];
   //循環線
   //如果 出發站序號 > 到達站序號，代表返程
   if (go_from_station?.orderNo < go_to_station?.orderNo) {
@@ -547,19 +547,19 @@ export const handleTicketPriceTool = async ({
       return { content: "抱歉，出發站與到達站相同，無法查詢票價。" };
     }
   } else {
-    results.push({
+    possibleResults.push({
       goBack: goBack,
       departure: departure,
       destination: destination,
     });
   }
 
-  if (routeInfo.isCycled) {
+  if (routeInfo.isCycled && go_to_station?.sid != back_to_station?.sid) {
     goBack = 1;
     departure = go_from_station;
     destination = back_to_station;
 
-    results.push({
+    possibleResults.push({
       goBack: goBack,
       departure: departure,
       destination: destination,
@@ -567,21 +567,7 @@ export const handleTicketPriceTool = async ({
     });
   }
 
-  const content = results
-    .map((e) => {
-      const direction =
-        e.goBack == 1
-          ? ` - 往${routeInfo.destination}`
-          : ` - 往${routeInfo.departure}`;
-      return `點擊查看「${route_name}${direction}」${
-        e.departure?.node?.name
-      } 到 ${e.isCycled ? "『返程』-" : ""} ${
-        e.destination?.node?.name
-      } 票價資訊 →`;
-    })
-    .join("\n");
-
-  const extraData = results.map((e) => {
+  const results = possibleResults.map((e) => {
     const direction =
       e.goBack == 1
         ? ` - 往${routeInfo.destination}`
@@ -595,9 +581,12 @@ export const handleTicketPriceTool = async ({
       navigate: `/general/fare?id=${route_id}&goBack=${e.goBack}&departureId=${e.departure?.node?.id}&destinationId=${e.destination?.node?.id}`,
     };
   });
+
   return {
-    content: content,
-    navigate: extraData[0].navigate,
-    extraData: extraData,
+    content: results[0].content,
+    navigate: results[0].navigate,
+    extraData: results.length > 1 ? results : null,
   };
 };
+
+// 300市政府到台中車站票價
