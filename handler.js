@@ -69,15 +69,15 @@ const getRouteIdByName = async (route_name) => {
   const node = await getRouteNodeByName(route_name);
   return node?.id;
 };
-const extractBusRoutesData = async (routeNode, fields) => {
+const extractBusRoutesData = async (fields) => {
   const result = {};
+  const busRoutes = await getBusRoutes({ reload: true });
 
   if (fields.includes("count_routes")) {
-    const busRoutes = await getBusRoutes({ reload: true });
-    result.count = busRoutes.data.routes.edges.length;
+    result.count_routes = busRoutes.data.routes.edges.length;
   }
+
   if (fields.includes("routes")) {
-    const busRoutes = await getBusRoutes({ reload: true });
     result.routes = busRoutes.data.routes.edges.map((e) => ({
       name: e.node.name,
       description: e.node.description,
@@ -86,19 +86,17 @@ const extractBusRoutesData = async (routeNode, fields) => {
       isCycled: e.node.isCycled,
     }));
   }
-  if (fields.includes("departure_destination")) {
-    result.departure = routeNode.departure;
-    result.destination = routeNode.destination;
-  }
-  if (fields.includes("isCycled")) {
-    result.isCycled = routeNode.isCycled;
-  }
 
   return result;
 };
 
 const extractStaticData = (routeNode, fields) => {
   const result = {};
+
+  if (fields.includes("route_info")) {
+    const { stations, providers, ...rest } = routeNode;
+    result.route_info = rest;
+  }
 
   if (fields.includes("stations")) {
     result.stations = {
@@ -217,13 +215,14 @@ export const handleBusRoutesInfoTool = async (
   { route_name, fields },
   message
 ) => {
-  let routeNode;
-  if (route_name) {
-    routeNode = await getRouteNodeByName(route_name);
-    if (!routeNode) return { content: `抱歉，查無${route_name}。` };
-  }
+  // let routeNode;
+  // if (route_name) {
+  //   routeNode = await getRouteNodeByName(route_name);
+  //   if (!routeNode) return { content: `抱歉，查無${route_name}。` };
 
-  const data = await extractBusRoutesData(routeNode, fields);
+  // }
+
+  const data = await extractBusRoutesData(fields);
 
   return generateAnswer({ fields, data }, message);
 };

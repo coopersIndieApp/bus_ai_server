@@ -60,7 +60,7 @@ export const generateAnswer = async (data, message) => {
     model: "gpt-4.1-mini",
     messages: [
       { role: "system", content: ANSWER_PROMPT },
-      { role: "user", content: JSON.stringify(data) },
+      { role: "user", content: "資料：" + JSON.stringify(data) },
       { role: "user", content: `使用者問題：${message} ` },
     ],
   });

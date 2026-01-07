@@ -3,24 +3,19 @@ const busRoutesInfoTool = {
   function: {
     name: "busRoutes_info",
     description:
-      "查詢公車路線總覽，如路線數量、起訖站、是否循環。範例：目前台中有幾條公車路線？3開頭的路線有哪些？300 路線起訖站？300 是不是循環線？",
+      "查詢公車路線總覽。根據使用者問題自動判斷返回內容：問「有多少路線」、「幾條路線」、「路線總數」時返回路線數量；問「有哪些路線」、「路線列表」時返回路線列表。如果未指定 fields，系統會根據問題自動判斷。範例：目前台中有幾條公車路線？3開頭的路線有哪些？",
     parameters: {
       type: "object",
       properties: {
-        route_name: { type: "string", description: "路線名稱" },
         fields: {
           type: "array",
           items: {
-            enum: [
-              "count_routes",
-              "departure_destination",
-              "isCycled",
-              "routes",
-            ],
+            enum: ["count_routes", "routes"],
           },
+          description:
+            "可選參數。如果不指定，系統會根據使用者問題自動判斷返回路線數量或路線列表",
         },
       },
-      required: ["fields"],
     },
   },
 };
@@ -30,7 +25,7 @@ const staticRouteInfoTool = {
   function: {
     name: "static_route_info",
     description:
-      "查詢特定路線的靜態資訊，如站點、營運商。範例：300 路線有哪些站？300 路線的營運商是哪幾家？",
+      "查詢特定路線的靜態資訊，如站點、營運商、起訖站、是否循環。範例：300 路線有哪些站？300 路線的營運商是哪幾家？300 路線起訖站？300 是不是循環線？",
     parameters: {
       type: "object",
       properties: {
@@ -38,7 +33,7 @@ const staticRouteInfoTool = {
         fields: {
           type: "array",
           items: {
-            enum: ["stations", "providers"],
+            enum: ["stations", "providers", "route_info"],
           },
         },
       },
