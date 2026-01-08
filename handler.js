@@ -110,7 +110,7 @@ const extractStaticData = (routeNode, fields) => {
   }
 
   if (fields.includes("providers")) {
-    result.providers = routeNode.providers.edges.map((e) => e.node.name);
+    result.providers = routeNode.providers.edges.map((e) => e.node);
   }
 
   if (fields.includes("ticket_price")) {
