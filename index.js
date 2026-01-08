@@ -71,7 +71,7 @@ export const generateAnswer = async (data, message) => {
 // 先啟動時更新一次
 (async () => {
   console.log("初始化更新 busRoutes.json...");
-  await getBusRoutes({ reload: true });
+  await updateBusRoutes({ reload: true });
 })();
 
 // 每天凌晨 3 點自動更新
