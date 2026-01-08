@@ -148,6 +148,23 @@ app.post("/admin/update-bus-routes", async (_, res) => {
   }
 });
 
+app.get("/health", async (_, res) => {
+  try {
+    const routes = await getBusRoutes();
+
+    res.status(200).json({
+      status: "ok",
+      busRoutesCount: routes?.data?.routes?.edges?.length ?? 0,
+      timestamp: Date.now(),
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: "busRoutes unavailable",
+    });
+  }
+});
+
 /* ========================
    Server
 ======================== */
