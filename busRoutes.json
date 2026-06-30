@@ -472,18 +472,6 @@
         },
         {
           "node": {
-            "id": "67",
-            "name": "67",
-            "description": "秀泰影城 - 臺中區監理所(遊園路)",
-            "opType": 0,
-            "inuse": true,
-            "isCycled": false,
-            "departure": "秀泰影城",
-            "destination": "臺中區監理所(遊園路)"
-          }
-        },
-        {
-          "node": {
             "id": "69",
             "name": "69",
             "description": "龍潭里 - 臺中國際機場",
@@ -870,11 +858,11 @@
           "node": {
             "id": "131",
             "name": "131",
-            "description": "北屯區行政大樓  - 朝陽科技大學",
+            "description": "北屯國兒運(崇德八路)  - 朝陽科技大學",
             "opType": 0,
             "inuse": true,
             "isCycled": false,
-            "departure": "北屯區行政大樓",
+            "departure": "北屯國兒運(崇德八路)",
             "destination": "朝陽科技大學"
           }
         },
@@ -882,11 +870,11 @@
           "node": {
             "id": "132",
             "name": "132",
-            "description": "北屯區行政大樓-朝陽科技大學 ",
+            "description": "北屯國兒運(崇德八路)-朝陽科技大學",
             "opType": 0,
             "inuse": true,
             "isCycled": false,
-            "departure": "北屯區行政大樓",
+            "departure": "北屯國兒運(崇德八路)",
             "destination": "朝陽科技大學"
           }
         },
@@ -1182,7 +1170,7 @@
           "node": {
             "id": "183",
             "name": "183",
-            "description": "豐原轉運中心 - 新庄 - 臺中港郵局",
+            "description": "臺中港郵局 - 新庄 - 豐原轉運中心",
             "opType": 0,
             "inuse": true,
             "isCycled": false,
@@ -1404,18 +1392,6 @@
             "isCycled": false,
             "departure": "豐原轉運中心",
             "destination": "東山"
-          }
-        },
-        {
-          "node": {
-            "id": "235",
-            "name": "235",
-            "description": "豐原圓環線",
-            "opType": 0,
-            "inuse": true,
-            "isCycled": false,
-            "departure": "豐原-南環",
-            "destination": "豐原-北環"
           }
         },
         {
@@ -2490,11 +2466,11 @@
           "node": {
             "id": "651",
             "name": "651",
-            "description": "大甲區公所 - 外埔 - 臺中女中",
+            "description": "順中站 - 臺中女中",
             "opType": 0,
             "inuse": true,
             "isCycled": false,
-            "departure": "大甲區公所",
+            "departure": "順中站",
             "destination": "臺中女中"
           }
         },
@@ -2812,6 +2788,18 @@
         },
         {
           "node": {
+            "id": "881",
+            "name": "88區",
+            "description": "麗園公園 - 捷運四維國小 - 麗園公園",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": true,
+            "departure": "麗園公園",
+            "destination": "捷運四維國小"
+          }
+        },
+        {
+          "node": {
             "id": "888",
             "name": "888",
             "description": "豐原轉運中心 - 泰安車站",
@@ -2916,18 +2904,6 @@
             "isCycled": false,
             "departure": "豐原",
             "destination": "明德高中"
-          }
-        },
-        {
-          "node": {
-            "id": "911",
-            "name": "91延",
-            "description": "臺中國際機場 - 中興嶺停車場",
-            "opType": 0,
-            "inuse": true,
-            "isCycled": false,
-            "departure": "臺中國際機場",
-            "destination": "中興嶺停車場"
           }
         },
         {
@@ -3976,6 +3952,18 @@
         },
         {
           "node": {
+            "id": "2822",
+            "name": "282繞",
+            "description": "亞洲大學安藤館 - 桐林",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": false,
+            "departure": "亞洲大學安藤館",
+            "destination": "桐林"
+          }
+        },
+        {
+          "node": {
             "id": "2851",
             "name": "285副",
             "description": "帝國製糖廠 - 竹仔坑",
@@ -4372,6 +4360,42 @@
         },
         {
           "node": {
+            "id": "5911",
+            "name": "91延1",
+            "description": "臺中國際機場 -新庄 - 中興嶺停車場",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": false,
+            "departure": "臺中國際機場",
+            "destination": "中興嶺停車場"
+          }
+        },
+        {
+          "node": {
+            "id": "5912",
+            "name": "91延2",
+            "description": "臺中國際機場 - 東山 - 中興嶺停車場",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": false,
+            "departure": "臺中國際機場",
+            "destination": "中興嶺停車場"
+          }
+        },
+        {
+          "node": {
+            "id": "6511",
+            "name": "651副",
+            "description": "順中站 - 臺中女中",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": false,
+            "departure": "順中站",
+            "destination": "臺中女中"
+          }
+        },
+        {
+          "node": {
             "id": "6581",
             "name": "658副",
             "description": "大安濱海樂園 - 海墘國小 - 惠文高中(惠中路)",
@@ -4464,6 +4488,18 @@
             "isCycled": false,
             "departure": "新政大安港路口",
             "destination": "沙鹿西站(新站路)"
+          }
+        },
+        {
+          "node": {
+            "id": "6793",
+            "name": "679繞",
+            "description": "新政大安港路口 - 臺中國際機場",
+            "opType": 0,
+            "inuse": true,
+            "isCycled": false,
+            "departure": "新政大安港路口",
+            "destination": "臺中國際機場"
           }
         },
         {

@@ -1,72 +1,14 @@
 import dotenv from "dotenv";
 import express from "express";
-import OpenAI from "openai";
 import { getBusRoutes, updateBusRoutes } from "./busRoutesStore.js";
-import { ANSWER_PROMPT, TOOL_CALL_PROMPT } from "./rules.js";
-import { tools } from "./tools.js";
-import {
-  handleBusRoutesInfoTool,
-  handleStaticRouteInfoTool,
-  handleDynamicRouteInfoTool,
-  handleStationInfoTool,
-  handleTravelPlanTool,
-  handleRouteMapTool,
-  handleRouteScheduleInfoTool,
-  handleMrTBusTool,
-  handleTicketPriceTool,
-  handleNearbyStationTool,
-} from "./handler.js";
+import { handleToolCall } from "./handler.js";
 import cron from "node-cron";
+import { aiRouter } from "./aiRouter.js";
+
 // 捷運松竹站公車路線
 dotenv.config();
 const app = express();
 app.use(express.json());
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const handleToolCall = async (name, args, lastMessage) => {
-  switch (name) {
-    case "busRoutes_info":
-      return await handleBusRoutesInfoTool(args, lastMessage);
-    case "static_route_info":
-      return await handleStaticRouteInfoTool(args, lastMessage);
-    case "dynamic_route_info":
-      return await handleDynamicRouteInfoTool(args, lastMessage);
-    case "station_info":
-      return await handleStationInfoTool(args, lastMessage);
-    case "route_schedule_info":
-      return await handleRouteScheduleInfoTool(args, lastMessage);
-    case "route_map":
-      return await handleRouteMapTool(args, lastMessage);
-    case "travel_plan":
-      return await handleTravelPlanTool(args, lastMessage);
-    case "mrt_bus":
-      return await handleMrTBusTool(args, lastMessage);
-    case "ticket_price":
-      return await handleTicketPriceTool(args, lastMessage);
-    case "nearby_station":
-      return handleNearbyStationTool(args, lastMessage);
-  }
-};
-
-/* ========================
-   Answer Generator（沿用）
-======================== */
-
-export const generateAnswer = async (data, message) => {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: [
-      { role: "system", content: ANSWER_PROMPT },
-      { role: "user", content: "資料：" + JSON.stringify(data) },
-      { role: "user", content: `使用者問題：${message} ` },
-    ],
-  });
-
-  return { content: completion.choices[0].message.content };
-};
 
 // 先啟動時更新一次
 (async () => {
@@ -85,40 +27,33 @@ cron.schedule("0 3 * * *", async () => {
   }
 });
 
-/* ========================
-   /chat（tool-first）
-======================== */
-
 app.post("/chat", async (req, res) => {
-  const { messages } = req.body;
+  const { messages, provider = "openai" } = req.body;
   const lastMessage = messages[messages.length - 1].content;
-  // const dateTime = new Date().toISOString().split("T")[0];
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [{ role: "system", content: TOOL_CALL_PROMPT }, ...messages],
-      tools,
-      tool_choice: "auto",
-    });
-    // 東海大學到靜宜大學 怎麼搭
-    const toolCall = completion.choices[0].message.tool_calls?.[0];
-    console.log(toolCall);
-    if (!toolCall) {
-      return res.json({
-        reply: completion.choices[0].message,
-      });
+    const ai = aiRouter[provider];
+    if (!ai) {
+      return res.status(400).json({ error: "Unsupported AI provider" });
     }
-    const { type, function: func } = toolCall;
-
-    if (type === "function") {
-      const { name, arguments: argString } = func;
-      const args = JSON.parse(argString);
-      const reply = await handleToolCall(name, args, lastMessage);
-      return res.json({ reply });
+    // ① AI 判斷是否要叫 tool
+    const result = await ai.handleChat(messages, lastMessage);
+    console.log("result", result);
+    // ② 沒 tool，直接回
+    if (result.content) {
+      return res.json({ reply: result });
     }
-
-    res.json({ reply: { content: "目前無法處理該查詢。" } });
+    // ③ 有 tool
+    const { name, args } = result;
+    const toolResult = await handleToolCall(name, args, lastMessage);
+    console.log("toolResult", toolResult);
+    if (toolResult?.content) {
+      res.json({ reply: toolResult });
+    } else {
+      // ④ 丟資料回 AI 生成自然語言
+      const finalAnswer = await ai.generateAnswer(toolResult, lastMessage);
+      res.json({ reply: finalAnswer });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "AI 回應失敗" });
@@ -134,7 +69,6 @@ app.post("/chat", async (req, res) => {
   curl -X POST http://localhost:3000/admin/update-bus-routes
   -H "Content-Type: application/json"
   -d '{"forceUpdate": true}'
-  // 台中公車有幾條路線
 */
 app.post("/admin/update-bus-routes", async (_, res) => {
   try {
@@ -168,7 +102,6 @@ app.get("/health", async (_, res) => {
 /* ========================
    Server
 ======================== */
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);

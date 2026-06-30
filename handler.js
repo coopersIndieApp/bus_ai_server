@@ -7,7 +7,6 @@ import {
   query_mrt_stop_routes,
 } from "./apis.js";
 import * as fuzz from "fuzzball"; // ✅
-import { generateAnswer } from "./index.js";
 import { getBusRoutes } from "./busRoutesStore.js";
 
 /**
@@ -175,6 +174,42 @@ const extractDynamicData = (routeNode, station_name) => {
   return data;
 };
 
+const extractStationData = (routeNode, station_name) => {
+  let matchedStations = routeNode.stations.edges.filter((s) =>
+    fuzzyMatch(s.node.name, station_name)
+  );
+
+  if (matchedStations.length === 0) {
+    // 如果沒有任何 fuzzy match → 直接找最接近的站點
+    const candidates = getFuzzyCandidates(
+      station_name,
+      routeNode.stations.edges,
+      0,
+      1
+    );
+    if (candidates.length === 0) {
+      return { content: `抱歉，查無${station_name}。` };
+    }
+    // 找到最接近的站點
+    matchedStations = routeNode.stations.edges.filter(
+      (s) => s.node.name === candidates[0]
+    );
+  }
+
+  const stationIds = matchedStations.map((e) => e.node.id);
+
+  const data = routeNode.stations.edges
+    .filter((e) => stationIds.includes(e.node.id))
+    .map((e) => ({
+      id: e.node.id,
+      station_name: e.node.name,
+      direction: e.goBack === 1 ? "去程" : "回程",
+      destination: e.goBack === 1 ? routeNode.destination : routeNode.departure,
+    }));
+
+  return data;
+};
+
 const extractDynamicStationsData = (stationNode) => {
   return stationNode.edges
     .map((e) => ({
@@ -223,8 +258,8 @@ export const handleBusRoutesInfoTool = async (
   // }
 
   const data = await extractBusRoutesData(fields);
-
-  return generateAnswer({ fields, data }, message);
+  return data;
+  // return generateAnswer({ fields, data }, message);
 };
 
 export const handleStaticRouteInfoTool = async (
@@ -241,13 +276,15 @@ export const handleStaticRouteInfoTool = async (
 
   const data = extractStaticData(apiResult.data.route, fields);
 
-  return generateAnswer({ fields, data }, message);
+  return data;
+  // return generateAnswer({ fields, data }, message);
 };
 
 export const handleDynamicRouteInfoTool = async (
   { route_name, station_name, fields },
   message
 ) => {
+  console.log(route_name, station_name, fields);
   // ==== 2️⃣ 取得 route_id ====
   const route_id = await getRouteIdByName(route_name);
   if (!route_id) return { content: `抱歉，查無${route_name}。` };
@@ -262,7 +299,8 @@ export const handleDynamicRouteInfoTool = async (
   const data = extractDynamicData(routeData, station_name);
 
   // ==== 5️⃣ 回傳結果 ====
-  return generateAnswer({ fields, data }, message);
+  return data;
+  // return generateAnswer({ fields, data }, message);
 };
 
 const formatStationInfoAnswer = (fields, stationsData) => {
@@ -377,13 +415,8 @@ export const handleStationInfoTool = async (
   const content = formatStationInfoAnswer(fields, data);
   //   console.log(content);
   //   return { content: `「${station_name}」站點資訊：\n\n${content}` };
-  return generateAnswer(
-    {
-      fields,
-      data: content,
-    },
-    message
-  );
+  return content;
+  // return generateAnswer({fields,data: content,},message);
 };
 
 export const handleRouteScheduleInfoTool = async ({
@@ -458,11 +491,11 @@ export const handleMrTBusTool = async ({ mrt_stop_name, fields }, message) => {
 
   const mrtBusStops = apiResult.data.metros.edges.map((e) => e.node);
 
-  if (!mrt_stop_name)
-    return generateAnswer(
-      { fields, data: mrtBusStops.map((e) => e.name) },
-      message
-    );
+  if (!mrt_stop_name) return mrtBusStops.map((e) => e.name);
+  // return generateAnswer(
+  //   { fields, data: mrtBusStops.map((e) => e.name) },
+  //   message
+  // );
 
   let mrtName;
 
@@ -601,4 +634,164 @@ export const handleTicketPriceTool = async ({
   };
 };
 
+export const handleReserveStopTool = async (
+  { route_name, direction, destination, station_name },
+  message
+) => {
+  const route_id = await getRouteIdByName(route_name);
+  if (!route_id) return { content: `抱歉，查無${route_name}。` };
+
+  // ==== 3️⃣ 取得動態路線資訊 ====
+  const apiResult = await fetch(
+    ESTOP_API,
+    query_dynamic_route_info(route_id)
+  ).then((r) => r.json());
+  const routeData = apiResult.data.route;
+
+  const data = extractStationData(routeData, station_name);
+
+  let matchedDirection;
+  if (destination) {
+    matchedDirection = data.find((s) => fuzzyMatch(s.destination, destination));
+  } else if (direction) {
+    matchedDirection = data.find(
+      (s) =>
+        (s.direction === "去程" && direction === 1) ||
+        (s.direction === "回程" && direction === 2)
+    );
+  }
+
+  if (!matchedDirection) {
+    return { content: "抱歉，請確認提供資訊是否正確。" };
+  }
+
+  const {
+    id,
+    station_name: stationName,
+    destination: destinationName,
+  } = matchedDirection;
+
+  const goBack = matchedDirection?.direction === "去程" ? 1 : 2;
+  const reserveStopsData = await fetchReserveStopsData(route_id);
+  const reserveStops2Data = await fetchReserveStops2Data(route_id);
+
+  const hasReserveStops = reserveStopsData?.stopList?.some(
+    (r) => r.stationId.trim() == id.trim()
+  );
+  const hasReserveStops2 = reserveStops2Data?.stopList?.some(
+    (r) => r.stationId.trim() == id.trim()
+  );
+
+  if (!hasReserveStops && !hasReserveStops2) {
+    return { content: "抱歉，此站牌無法預約。" };
+  }
+
+  return {
+    content: `點擊預約「${route_name} - 往${destinationName}」 「${stationName}」站牌 →`,
+    navigate: `/general/busRoute/${route_id}?goBack=${goBack}&stopId=${id}&hasReserveStops=${hasReserveStops}&hasReserveStops2=${hasReserveStops2}`,
+  };
+};
+
+const RESERVE_STOPS_OPTIONS = {
+  method: "GET",
+  headers: {
+    APIToken: "jRRr33GtqTlBFCnfhnRKfudlIc1QtHk",
+  },
+};
+const RESERVE_STOPS2_OPTIONS = {
+  method: "GET",
+  headers: {
+    Token: "041c6e9b7a1ba1343f40a013a3f1c3c3",
+  },
+};
+
+const fetchReserveStopsData = async (routeId) => {
+  try {
+    const response = await fetch(
+      `http://imp.7584.com.tw/IMP/jsp/reserveStop/getReserveStopList.jsp?RouteID=${routeId}`,
+      RESERVE_STOPS_OPTIONS
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: 1${response.statusText}`);
+    }
+    const data = await response.json();
+    // console.log(data);
+    return data;
+  } catch (err) {
+    console.log("err", err.message);
+  }
+};
+
+const fetchReserveStops2Data = async (routeId) => {
+  try {
+    const response = await fetch(
+      `http://18.177.132.161/Taichung/ServiceLight/getReserveStopList.php?RouteID=${routeId}`,
+      RESERVE_STOPS2_OPTIONS
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: 1${response.statusText}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.log("err", err.message);
+  }
+};
 // 300市政府到台中車站票價
+// 300市政府到站時間
+// 預約 1 往中台科技大學 樂達利山莊
+// 預約 300 去程 市政府
+
+// export const handleToolCall = async (name, args, lastMessage) => {
+//   console.log("name", name);
+//   switch (name) {
+//     case name.includes("busRoutes_info"):
+//       return await handleBusRoutesInfoTool(args, lastMessage);
+//     case name.includes("static_route_info"):
+//       return await handleStaticRouteInfoTool(args, lastMessage);
+//     case name.includes("dynamic_route_info"):
+//       return await handleDynamicRouteInfoTool(args, lastMessage);
+//     case name.includes("station_info"):
+//       return await handleStationInfoTool(args, lastMessage);
+//     case name.includes("route_schedule_info"):
+//       return await handleRouteScheduleInfoTool(args, lastMessage);
+//     case name.includes("route_map"):
+//       return await handleRouteMapTool(args, lastMessage);
+//     case name.includes("travel_plan"):
+//       return await handleTravelPlanTool(args, lastMessage);
+//     case name.includes("mrt_bus"):
+//       return await handleMrTBusTool(args, lastMessage);
+//     case name.includes("ticket_price"):
+//       return await handleTicketPriceTool(args, lastMessage);
+//     case name.includes("nearby_station"):
+//       return handleNearbyStationTool(args, lastMessage);
+//     case name.includes("reserve_stop"):
+//       return await handleReserveStopTool(args, lastMessage);
+//   }
+// };
+
+const toolMap = {
+  busRoutes_info: handleBusRoutesInfoTool,
+  static_route_info: handleStaticRouteInfoTool,
+  dynamic_route_info: handleDynamicRouteInfoTool,
+  station_info: handleStationInfoTool,
+  route_schedule_info: handleRouteScheduleInfoTool,
+  route_map: handleRouteMapTool,
+  travel_plan: handleTravelPlanTool,
+  mrt_bus: handleMrTBusTool,
+  ticket_price: handleTicketPriceTool,
+  nearby_station: handleNearbyStationTool,
+  reserve_stop: handleReserveStopTool,
+};
+
+export const handleToolCall = async (name, args, lastMessage) => {
+  console.log("name", name);
+
+  const key = Object.keys(toolMap).find((k) => name.includes(k));
+  if (!key) return null;
+
+  const fn = toolMap[key];
+  return await fn(args, lastMessage);
+};

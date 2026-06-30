@@ -222,3 +222,23 @@ export const query_mrt_stop_routes = () => ({
           }`,
   }),
 });
+
+export const query_reserve_stops = (routeId) => ({
+  url: `http://imp.7584.com.tw/IMP/jsp/reserveStop/getReserveStopList.jsp?RouteID=${routeId}`,
+  options: {
+    method: "GET",
+    headers: {
+      APIToken: "jRRr33GtqTlBFCnfhnRKfudlIc1QtHk",
+    },
+  },
+});
+
+export const query_reserve_stops2 = (routeId) => ({
+  url: `http://18.177.132.161/Taichung/ServiceLight/getReserveStopList.php?RouteID=${routeId}`,
+  options: {
+    method: "GET",
+    headers: {
+      Token: "041c6e9b7a1ba1343f40a013a3f1c3c3",
+    },
+  },
+});
